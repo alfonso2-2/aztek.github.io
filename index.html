@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Registro de Venta - Vidrios y Cancelaría de Aluminio</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(to right, #2c3e50, #3498db);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: #ffffffee;
+            border-radius: 16px;
+            max-width: 700px;
+            width: 100%;
+            padding: 40px 50px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 6px;
+            display: block;
+        }
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            padding: 10px 14px;
+            font-size: 1rem;
+            border-radius: 6px;
+            border: 2px solid #bdc3c7;
+            width: 100%;
+            resize: vertical;
+        }
+        input:focus,
+        textarea:focus {
+            border-color: #2980b9;
+            outline: none;
+            box-shadow: 0 0 6px rgba(52, 152, 219, 0.5);
+        }
+        .producto {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #f9f9f9;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-top: 10px;
+        }
+        button {
+            padding: 14px;
+            background: #3498db;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.25s ease;
+            letter-spacing: 1px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .footer {
+            margin-top: 25px;
+            font-size: 0.9rem;
+            color: #34495e;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Registro de Venta</h1>
+    <form id="ventaForm">
+        <div>
+            <label for="cliente">Nombre del Cliente</label>
+            <input type="text" id="cliente" name="cliente" placeholder="Ej. Juan Pérez" required />
+        </div>
+
+        <div id="productosContainer"></div>
+
+        <button type="button" onclick="agregarProducto()">Agregar Producto</button>
+        <button type="submit">Generar PDF</button>
+    </form>
+    <div class="footer">&copy; 2025 - Vidrios y Cancelaría de Aluminio</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+    const { jsPDF } = window.jspdf;
+
+    const form = document.getElementById('ventaForm');
+    const productosContainer = document.getElementById('productosContainer');
+
+    let contadorProductos = 0;
+
+    function agregarProducto() {
+        contadorProductos++;
+
+        const div = document.createElement('div');
+        div.classList.add('producto');
+        div.innerHTML = `
+            <label>Producto</label>
+            <input type="text" name="producto_${contadorProductos}" required />
+
+            <label>Cantidad</label>
+            <input type="number" name="cantidad_${contadorProductos}" min="1" required />
+
+            <label>Precio Unitario (MXN)</label>
+            <input type="number" name="precio_${contadorProductos}" step="0.01" min="0" required />
+
+            <label>Observaciones</label>
+            <textarea name="observaciones_${contadorProductos}" placeholder="Notas..." rows="2"></textarea>
+        `;
+        productosContainer.appendChild(div);
+    }
+
+    agregarProducto(); // inicia con un producto
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const cliente = form.cliente.value.trim();
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+
+        doc.setFontSize(22);
+        doc.setTextColor(40, 40, 40);
+        doc.text("Factura de Venta", pageWidth / 2, 20, { align: "center" });
+
+        doc.setFontSize(14);
+        doc.setTextColor(60, 60, 60);
+        doc.text(`Cliente: ${cliente}`, 20, 35);
+
+        let y = 50;
+        let totalGeneral = 0;
+
+        for (let i = 1; i <= contadorProductos; i++) {
+            const producto = form[`producto_${i}`]?.value.trim();
+            const cantidad = parseInt(form[`cantidad_${i}`]?.value);
+            const precio = parseFloat(form[`precio_${i}`]?.value);
+            const observaciones = form[`observaciones_${i}`]?.value.trim();
+
+            const subtotal = cantidad * precio;
+            totalGeneral += subtotal;
+
+            doc.setFillColor(230, 240, 255);
+            doc.rect(15, y - 5, pageWidth - 30, 8, 'F');
+            doc.setFont(undefined, 'bold');
+            doc.text(`Producto ${i}: ${producto}`, 20, y);
+            y += 10;
+
+            doc.setFont(undefined, 'normal');
+            doc.text(`Cantidad: ${cantidad}`, 25, y);
+            y += 7;
+            doc.text(`Precio Unitario: $${precio.toFixed(2)} MXN`, 25, y);
+            y += 7;
+            doc.text(`Subtotal: $${subtotal.toFixed(2)} MXN`, 25, y);
+            y += 7;
+
+            if (observaciones) {
+                doc.text("Observaciones:", 25, y);
+                y += 6;
+                const obsLines = doc.splitTextToSize(observaciones, pageWidth - 40);
+                doc.text(obsLines, 30, y);
+                y += obsLines.length * 6 + 4;
+            } else {
+                y += 4;
+            }
+        }
+
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Total a Pagar: $${totalGeneral.toFixed(2)} MXN`, 20, y + 10);
+
+        doc.save(`Factura_${cliente.replace(/\s+/g, '_')}.pdf`);
+    });
+</script>
+</body>
+</html>
